@@ -37,4 +37,6 @@ const GetProfile = async (cookie, path = "/info/aboutme") => {
     return profile;
 }
 
+
+
 export { GetTranscript, GetGrades, GetWeekly, GetProfile }

@@ -5,10 +5,11 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 //import Input from "react-native-input-style";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { SignInUser } from "../functions/SignInFunctions";
 import { Button, Icon, Input, InputGroup, Stack, Text } from "native-base";
 import { ActiveProfileContext } from "../functions/GlobalStates";
+import { SaveActiveProfile } from "../functions/LocalStorageFunctions";
 
 export default function SignInForm({ onSuccess, onError }) {
 
@@ -20,7 +21,11 @@ export default function SignInForm({ onSuccess, onError }) {
 
     const handleSignIn = async () => {
         setLoading(true);
-        SignInUser(username, password).then(profile => setActiveProfile(profile))
+        SignInUser(username, password).then(async (profile) => {
+            await SaveActiveProfile(profile);
+            setActiveProfile(profile);
+            onSuccess ? onSuccess(profile) : null;
+        })
             .catch(error => {
 
                 switch (error.status) {
@@ -32,6 +37,7 @@ export default function SignInForm({ onSuccess, onError }) {
                     default:
                         setError(error.message + error.status)
                 }
+                onError ? onError(error) : null;
             })
             .finally(() => setLoading(false))
     }
@@ -50,7 +56,7 @@ export default function SignInForm({ onSuccess, onError }) {
                 <Input
                     w={"95%"}
                     size="lg" mx="auto"
-                    placeholder="Kullanıcı Adı"
+                    placeholder="Öğrenci No"
                     keyboardType="number-pad"
                     isDisabled={loading}
                     onChangeText={text => setUsername(text)} />

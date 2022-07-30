@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { DeleteActiveProfile, DeleteProfile, SaveActiveProfile, SaveCokiesString, UpsertProfile } from "./LocalStorageFunctions";
+import { SaveActiveProfile, UpsertProfile } from "./LocalStorageFunctions";
 
 const baseUrl = "https://ege-api.herokuapp.com/api";
 
@@ -26,10 +25,12 @@ const SignInUser = async (username, password, org = "ogrenci", path = "/auth") =
 
     let profile = body;
 
+    let cookie = apiResponse.headers.get("set-cookie");
+    profile.cookie = cookie;
+
     await SaveActiveProfile(profile);
     await UpsertProfile(profile);
-    let cookie = apiResponse.headers.get("set-cookie");
-    await SaveCokiesString(cookie);
+
     return profile;
 
 

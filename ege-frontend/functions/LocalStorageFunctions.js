@@ -5,8 +5,14 @@ const profilesKey = "profiles";
 const activeTranscriptKey = "active-transcript";
 const activeGradesKey = "active-grades";
 const activeWeeklyKey = "active-weekly";
-const cookiesStringKey = "cookies-string";
-
+const saveFormat = async (obj) => {
+    let activeProfile = await LoadActiveProfile();
+    let id = activeProfile.aboutMe.TC_Kimlik_No;
+    return {
+        key: id,
+        object: obj
+    }
+}
 const LoadActiveProfile = async () => {
     let savedProfileString = await AsyncStorage.getItem(activeProfileKey)
     if (savedProfileString === "{}")
@@ -22,10 +28,11 @@ const SaveActiveProfile = async (profile) => {
 
 const LoadProfiles = async () => {
     let profilesString = await AsyncStorage.getItem(profilesKey);
-    if (profilesString === null)
+    let profiles = JSON.parse(profilesString);
+    if (!Array.isArray(profiles))
         return [];
     else
-        return JSON.parse(profilesString);
+        return profiles;
 }
 
 const LoadProfile = async (TC_Kimlik_No) => {
@@ -39,6 +46,7 @@ const SaveProfiles = async (profiles) => {
 
 const UpsertProfile = async (profile) => {
     let profiles = await LoadProfiles();
+    profiles = Array.isArray(profiles) ? profiles : [];
     let matchedProfileIndex = profiles.findIndex(p => p.TC_Kimlik_No === profile.TC_Kimlik_No);
     if (matchedProfileIndex === -1) {
         profiles.push(profile);
@@ -51,10 +59,17 @@ const UpsertProfile = async (profile) => {
 const DeleteProfile = async (TC_Kimlik_No) => {
     let profiles = await LoadProfiles();
     let matchedProfileIndex = profiles.findIndex(p => p.TC_Kimlik_No === TC_Kimlik_No);
+
     if (matchedProfileIndex !== -1) {
         profiles.splice(matchedProfileIndex, 1);
     }
     await SaveProfiles(profiles);
+
+    let activeProfile = await LoadActiveProfile();
+    if (activeProfile && activeProfile.TC_Kimlik_No === TC_Kimlik_No) {
+        await ClearActives();
+        await SaveActiveProfile(null);
+    }
 }
 
 const DeleteActiveProfile = async () => {
@@ -83,25 +98,30 @@ const SwitchActiveProfile = async (TC_Kimlik_No) => {
 
 const SaveActiveCache = async (key, object) => {
     let activeProfile = await LoadActiveProfile();
-    object = { key: activrProfile.TC_Kimlik_No, object: object };
+    let id = activeProfile.aboutMe.TC_Kimlik_No;
     await AsyncStorage.setItem(key, JSON.stringify(object));
 }
 
 const SaveActiveTranscript = async (transcript) => {
-    await SaveActiveCache(activeTranscriptKey, transcript);
+    transcript = await saveFormat(transcript);
+    await SaveActiveCache(activeTranscriptKey, JSON.stringify(transcript));
 }
 
 const LoadMatchedCache = async (loadedJSONStr) => {
+
     let activeProfile = await LoadActiveProfile();
+
     if (!activeProfile)
         return null;
-    if (loadedJSONStr === "{}")
+    if (!loadedJSONStr)
         return null;
 
     let loadedJSON = JSON.parse(loadedJSONStr);
-    if (loadedJSON.key !== activeProfile.TC_Kimlik_No)
+    let loaded = JSON.parse(loadedJSON);
+
+    if (loaded.key !== activeProfile.aboutMe.TC_Kimlik_No)
         return null;
-    return loadedJSON.object;
+    return loaded.object;
 }
 
 const LoadActiveTranscript = async () => {
@@ -111,7 +131,8 @@ const LoadActiveTranscript = async () => {
 }
 
 const SaveActiveGrades = async (grades) => {
-    await SaveActiveCache(activeGradesKey, grades);
+    grades = await saveFormat(grades);
+    await SaveActiveCache(activeGradesKey, JSON.stringify(grades));
 }
 
 const LoadActiveGrades = async () => {
@@ -121,7 +142,8 @@ const LoadActiveGrades = async () => {
 }
 
 const SaveActiveWeekly = async (weekly) => {
-    await SaveActiveCache(activeWeeklyKey, weekly);
+    weekly = await saveFormat(weekly);
+    await SaveActiveCache(activeWeeklyKey, JSON.stringify(weekly));
 }
 
 const LoadActiveWeekly = async () => {
@@ -130,13 +152,6 @@ const LoadActiveWeekly = async () => {
     return weekly;
 }
 
-const SaveCokiesString = async (cookiesString) => {
-    await AsyncStorage.setItem(cookiesStringKey, cookiesString);
-}
-const LoadCookieString = async () => {
-    let cookiesString = await AsyncStorage.getItem(cookiesStringKey);
-    return cookiesString;
-}
 
 
 export {
@@ -153,7 +168,6 @@ export {
     LoadActiveGrades,  // Loads the active grades from storage
     SaveActiveWeekly,  // Sets the active weekly in storage
     LoadActiveWeekly, // Loads the active weekly from storage
-    SaveCokiesString,
-    LoadCookieString,
-    DeleteActiveProfile
+    DeleteActiveProfile,
+    ClearActives
 };  

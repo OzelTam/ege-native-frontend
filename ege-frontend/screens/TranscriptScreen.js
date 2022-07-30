@@ -1,23 +1,30 @@
-import React from 'react'
-import { ScrollView, Text } from 'native-base'
+import { useContext, useState, useEffect } from 'react'
+import { Button, ScrollView, Text } from 'native-base'
 import { RefreshControl, SafeAreaView } from 'react-native'
-import { TranscriptCacheContext } from '../functions/GlobalStates';
-import { LoadCookieString, SaveActiveTranscript } from '../functions/LocalStorageFunctions';
-import { GetTranscript } from '../functions/ServiceFunctions';
+import { TranscriptCacheContext, RetriveFunctionContext } from '../functions/GlobalStates';
+import { LoadActiveTranscript, SaveActiveTranscript } from '../functions/LocalStorageFunctions';
 
 
 export default function TranscriptScreen() {
-    const [refreshing, setRefreshing] = React.useState(false)
-    const [transcript, setTranscript] = React.useContext(TranscriptCacheContext)
+    const [refreshing, setRefreshing] = useState(false)
+    const [transcript, setTranscript] = useContext(TranscriptCacheContext)
+    const RetriveFunction = useContext(RetriveFunctionContext)
 
+    const retrive = (forced = false) => {
+        RetriveFunction("transcript", forced).then(async loaded => {
+            await SaveActiveTranscript(loaded);
+            setTranscript(loaded);
+
+        });
+    }
+
+    useEffect(() => {
+        retrive();
+    }, [])
 
     const handleRefresh = async () => {
         setRefreshing(true)
-        let cookie = await LoadCookieString()
-        let transcript = await GetTranscript(cookie);
-        console.log(transcript);
-        setTranscript(transcript);
-        SaveActiveTranscript(transcript);
+        await retrive(true);
         setRefreshing(false)
     }
 
@@ -34,8 +41,9 @@ export default function TranscriptScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
             >
 
+                <Button onPress={() => retrive()}>Hello</Button>
                 <Text>
-                    {JSON.stringify(transcript.seasons.map(season => season))}
+                    {JSON.stringify(transcript?.seasons?.map(season => season))}
                 </Text>
             </ScrollView>
         </SafeAreaView>
